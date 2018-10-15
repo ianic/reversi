@@ -1,3 +1,10 @@
+References:
+
+http://dhconnelly.com/paip-python/docs/paip/othello.html#playing
+https://github.com/dhconnelly/paip-python/blob/master/paip/examples/othello/othello.py
+https://github.com/dhconnelly/paip-python/blob/master/paip/othello.py
+
+
 """
 **Othello** is a turn-based two-player strategy board game.  The players take
 turns placing pieces--one player white and the other player black--on an 8x8
