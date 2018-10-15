@@ -140,5 +140,5 @@ def check(move, player, board):
 
 board, score = play(computer, computer)
 print('Final score:', score)
-print('%s wins!' % ('Black' if score > 0 else 'White'))
+print('%s wins!' % ('Black' if score > 0 else 'White '))
 print(print_board(board))
