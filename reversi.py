@@ -1,144 +1,141 @@
 import random
 
-# The outside edge is marked ?, empty squares are ., black is @, and white is o.
-# The black and white pieces represent the two players.
-EMPTY, BLACK, WHITE, OUTER = '.', '*', 'o', '?'
-PIECES = (EMPTY, BLACK, WHITE, OUTER)
+# oznake polja na ploci
+PRAZNO, CRNO, BIJELO, RUB = '.', '*', 'o', '?'
 
-# To refer to neighbor squares we can add a direction to a square.
-UP, DOWN, LEFT, RIGHT = -10, 10, -1, 1
-UP_RIGHT, DOWN_RIGHT, DOWN_LEFT, UP_LEFT = -9, 11, 9, -11
-DIRECTIONS = (UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT)
+# gore dolje lijevo desno gore-desno dolje desno dolje-lijevo gore-lijevo
+SMJEROVI = (-10, 10, -1, 1, -9, 11, 9, -11) 
 
-def squares():
-    """List all the valid squares on the board."""
+def polja():
+    """Lista svih polja na ploci."""
     return [i for i in range(11, 89) if 1 <= (i % 10) <= 8]
 
-def initial_board():
-    """Create a new board with the initial black and white positions filled."""
-    board = [OUTER] * 100
-    for i in squares():
-        board[i] = EMPTY
-    # The middle four squares should hold the initial piece positions.
-    board[44], board[45] = WHITE, BLACK
-    board[54], board[55] = BLACK, WHITE
-    return board
+def pocetna_ploca():
+    ploca = [RUB] * 100
+    for i in polja():
+        ploca[i] = PRAZNO
+    # srednja 4 polja su ispunjena, dva bijela i dva crna
+    ploca[44], ploca[45] = BIJELO, CRNO
+    ploca[54], ploca[55] = CRNO, BIJELO
+    return ploca
 
-def print_board(board):
-    """Get a string representation of the board."""
-    rep = ''
-    rep += '  %s\n' % ' '.join(map(str, list(range(1, 9))))
-    for row in range(1, 9):
-        begin, end = 10*row + 1, 10*row + 9
-        rep += '%d %s\n' % (row, ' '.join(board[begin:end]))
-    return rep
+def ispis(ploca):
+    print('  1 2 3 4 5 6 7 8')
+    for red in range(1, 9):
+        print(red, end=" ")
+        for polje in range(10*red + 1, 10*red + 9):
+            print(ploca[polje], end=" ")
+        print()
+    print()
 
-def is_valid(move):
-    """Is move a square on the board?"""
-    return move in squares()
+def protivnik(igrac):
+    """Vraca drugog igraca."""
+    return CRNO if igrac is BIJELO else BIJELO
 
-def opponent(player):
-    """Get player's opponent piece."""
-    return BLACK if player is WHITE else WHITE
-
-def find_bracket(square, player, board, direction):
+def pronadji_put(polje, igrac, ploca, smjer):
     """
-    Find a square that forms a bracket with `square` for `player` in the given
-    `direction`.  Returns None if no such square exists.
+    Pronadji put, u zadanom smjeru, do polja igraca tako da su izmedju polja protivnika.
+    Vraca zavrsno polje puta. Ili None ako put ne postoji.
     """
-    bracket = square + direction
-    if board[bracket] == player:
+    polje += smjer
+    if ploca[polje] == igrac:
         return None
-    opp = opponent(player)
-    while board[bracket] == opp:
-        bracket += direction
-    return None if board[bracket] in (OUTER, EMPTY) else bracket
+    prot = protivnik(igrac)
+    while ploca[polje] == prot:
+        polje += smjer
+    if ploca[polje] in (RUB, PRAZNO):
+        return None
+    return polje
 
-def is_legal(move, player, board):
-    """Is this a legal move for the player?"""
-    if board[move] != EMPTY:
+def odigraj_potez(potez, igrac, ploca):
+    """Uredi plocu nakon poteza igraca."""
+    for smjer in SMJEROVI:
+        dodjeli_polja(potez, igrac, ploca, smjer)
+
+def dodjeli_polja(polje, igrac, ploca, smjer):
+    """Dodjeli igracu polja od pocetnog do krajnjeg u danom smjeru."""
+    kraj = pronadji_put(polje, igrac, ploca, smjer)
+    if not kraj:
+        return
+    while polje != kraj:
+        ploca[polje] = igrac
+        polje += smjer
+
+def dozovoljen(potez, igrac, ploca):
+    """Je li potez igracu dozvoljen?"""
+    if potez not in polja():  # ako je na ploci
         return False
-    for d in DIRECTIONS:
-        if find_bracket(move, player, board, d):
+    if ploca[potez] != PRAZNO: # ako je to polje prazno
+        return False
+    for d in SMJEROVI:        # i ako postoji put
+        if pronadji_put(potez, igrac, ploca, d):
             return True
     return False
 
-def make_move(move, player, board):
-    """Update the board to reflect the move by the specified player."""
-    board[move] = player
-    for d in DIRECTIONS:
-        make_flips(move, player, board, d)
-    return board
+def dozvoljeni_potezi(igrac, ploca):
+    """Lista dozvoljenih poteza igraca."""
+    return [sq for sq in polja() if dozovoljen(sq, igrac, ploca)]
 
-def make_flips(move, player, board, direction):
-    """Flip pieces in the given direction as a result of the move by player."""
-    bracket = find_bracket(move, player, board, direction)
-    if not bracket:
-        return
-    square = move + direction
-    while square != bracket:
-        board[square] = player
-        square += direction
+def ima_potez(igrac, ploca):
+    """Ima li igrac iti jedan dozvoljeni potez?"""
+    return len(dozvoljeni_potezi(igrac, ploca)) > 0
 
-def legal_moves(player, board):
-    """Get a list of all legal moves for player."""
-    return [sq for sq in squares() if is_legal(sq, player, board)]
-
-def any_legal_move(player, board):
-    """Can player make any moves?"""
-    return any(is_legal(sq, player, board) for sq in squares())
-
-def play(black_strategy, white_strategy):
-    """Play a game of Othello and return the final board and score."""
-    board = initial_board()
-    player = BLACK
-    while player is not None:
-        if player == BLACK:
-            move = black_strategy(player, board)
+def igraj(black_strategy, white_strategy):
+    """Odigraj igru."""
+    ploca = pocetna_ploca()
+    igrac = CRNO
+    while igrac is not None:
+        if igrac == CRNO:
+            potez = black_strategy(igrac, ploca)
         else:
-            move = white_strategy(player, board)
-        make_move(move, player, board)
-        player = next_player(board, player)
-        print(print_board(board))
-    return board, score(BLACK, board)
+            potez = white_strategy(igrac, ploca)
+        odigraj_potez(potez, igrac, ploca)
+        igrac = slijedeci(ploca, igrac)
+        #ispis(ploca)
+    return ploca
 
-def next_player(board, prev_player):
-    """Which player should move next?  Returns None if no legal moves exist."""
-    opp = opponent(prev_player)
-    if any_legal_move(opp, board):
-        return opp
-    elif any_legal_move(prev_player, board):
-        return prev_player
+def slijedeci(ploca, igrac):
+    """Vraca igraca koji treba odigrati slijedeci potez."""
+    drugi = protivnik(igrac)
+    if ima_potez(drugi, ploca):
+        return drugi
+    elif ima_potez(igrac, ploca):
+        return igrac
     return None
 
-def score(player, board):
-    """Compute player's score (number of player's pieces minus opponent's)."""
-    mine, theirs = 0, 0
-    opp = opponent(player)
-    for sq in squares():
-        piece = board[sq]
-        if piece == player: mine += 1
-        elif piece == opp: theirs += 1
-    return mine - theirs
+def rezultat(ploca):
+    """Vraca rezultat, koliko ima bijeli koliko crnih polja."""
+    bijeli, crni = 0, 0
+    for polje in polja():
+        igrac = ploca[polje]
+        if igrac == BIJELO: bijeli += 1
+        elif igrac == CRNO: crni += 1
+    return bijeli, crni
 
-def computer(player, board):
-    """A strategy that always chooses a random legal move."""
-    return random.choice(legal_moves(player, board))
+def racunalo(igrac, ploca):
+    """Jednostavna straegija koja random slijedeci potez."""
+    return random.choice(dozvoljeni_potezi(igrac, ploca))
 
-def human(player, board):
-    print(print_board(board))
-    #print('Your move?')
+def covjek(igrac, ploca):
+    ispis(ploca)
     while True:
-        move = input('> ')
-        if move and check(int(move), player, board):
-            return int(move)
-        elif move:
-            print('Illegal move--try again.')
+        potez = input('> ')
+        if potez and dozovoljen(int(potez), igrac, ploca):
+            return int(potez)
+        elif potez:
+            print('Neispravan potez, pokusaj ponovo.')
 
-def check(move, player, board):
-    return is_valid(move) and is_legal(move, player, board)
+# pokreni igru 
+ploca = igraj(racunalo, covjek)
+# prikazi rezultat
+bijeli, crni = rezultat(ploca)
+print('Bijeli:', bijeli, 'Crni:', crni)
+if bijeli > crni:
+    print('Bijeli pobjednik!')
+elif crni > bijeli:
+    print('Crni pobjednik!')
+else:
+    print('Nerješeno!')
+ispis(ploca)
 
-board, score = play(computer, computer)
-print('Final score:', score)
-print('%s wins!' % ('Black' if score > 0 else 'White'))
-print(print_board(board))
+
