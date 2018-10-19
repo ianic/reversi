@@ -20,6 +20,7 @@ def pocetna_ploca():
     return ploca
 
 def ispis(ploca):
+    print()
     print('  1 2 3 4 5 6 7 8')
     for red in range(1, 9):
         print(red, end=" ")
@@ -30,7 +31,10 @@ def ispis(ploca):
 
 def protivnik(igrac):
     """Vraca drugog igraca."""
-    return CRNO if igrac is BIJELO else BIJELO
+    if igrac == BIJELO:
+        return CRNO
+    else:
+        return BIJELO
 
 def pronadji_put(polje, igrac, ploca, smjer):
     """
@@ -74,25 +78,11 @@ def dozovoljen(potez, igrac, ploca):
 
 def dozvoljeni_potezi(igrac, ploca):
     """Lista dozvoljenih poteza igraca."""
-    return [sq for sq in polja() if dozovoljen(sq, igrac, ploca)]
+    return [polje for polje in polja() if dozovoljen(polje, igrac, ploca)]
 
 def ima_potez(igrac, ploca):
     """Ima li igrac iti jedan dozvoljeni potez?"""
     return len(dozvoljeni_potezi(igrac, ploca)) > 0
-
-def igraj(black_strategy, white_strategy):
-    """Odigraj igru."""
-    ploca = pocetna_ploca()
-    igrac = CRNO
-    while igrac is not None:
-        if igrac == CRNO:
-            potez = black_strategy(igrac, ploca)
-        else:
-            potez = white_strategy(igrac, ploca)
-        odigraj_potez(potez, igrac, ploca)
-        igrac = slijedeci(ploca, igrac)
-        #ispis(ploca)
-    return ploca
 
 def slijedeci(ploca, igrac):
     """Vraca igraca koji treba odigrati slijedeci potez."""
@@ -108,12 +98,14 @@ def rezultat(ploca):
     bijeli, crni = 0, 0
     for polje in polja():
         igrac = ploca[polje]
-        if igrac == BIJELO: bijeli += 1
-        elif igrac == CRNO: crni += 1
+        if igrac == BIJELO:
+            bijeli += 1
+        elif igrac == CRNO:
+            crni += 1
     return bijeli, crni
 
 def racunalo(igrac, ploca):
-    """Jednostavna straegija koja random slijedeci potez."""
+    """Jednostavna strategija koja random slijedeci potez."""
     return random.choice(dozvoljeni_potezi(igrac, ploca))
 
 def covjek(igrac, ploca):
@@ -125,17 +117,39 @@ def covjek(igrac, ploca):
         elif potez:
             print('Neispravan potez, pokusaj ponovo.')
 
-# pokreni igru 
-ploca = igraj(racunalo, covjek)
+def igraj():
+    """Odigraj igru."""
+    ploca = pocetna_ploca()
+    igrac = CRNO
+    while igrac is not None:
+        if igrac == CRNO:
+            potez = racunalo(igrac, ploca)
+        else:
+            potez = racunalo(igrac, ploca)
+        odigraj_potez(potez, igrac, ploca)
+        igrac = slijedeci(ploca, igrac)
+        #ispis(ploca)
+    return ploca
+
+
+def ispis_raw(ploca):
+    for red in range(0, 10):
+        for polje in range(10*red, 10*red + 10):
+            print(ploca[polje], end=" ")
+        print()
+    print()
+
+ploca = igraj()
 # prikazi rezultat
 bijeli, crni = rezultat(ploca)
+print()
 print('Bijeli:', bijeli, 'Crni:', crni)
 if bijeli > crni:
     print('Bijeli pobjednik!')
 elif crni > bijeli:
     print('Crni pobjednik!')
 else:
-    print('Nerješeno!')
+    print('Neriješeno!')
 ispis(ploca)
 
 
